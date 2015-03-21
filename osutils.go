@@ -217,11 +217,11 @@ func newSubDir(absoluteDirPath string) (string, error) {
 		return "", ErrNotAbsolutePath
 	}
 	subDir := filepath.Join(absoluteDirPath, uuid.NewUUID().String())
-	subDir, err := filepath.EvalSymlinks(filepath.Clean(subDir))
-	if err != nil {
+	if err := os.Mkdir(subDir, 0755); err != nil {
 		return "", err
 	}
-	if err := os.Mkdir(subDir, 0755); err != nil {
+	subDir, err := filepath.EvalSymlinks(filepath.Clean(subDir))
+	if err != nil {
 		return "", err
 	}
 	return subDir, nil
