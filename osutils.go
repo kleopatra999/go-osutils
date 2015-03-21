@@ -179,11 +179,7 @@ func listRegularFiles(absolutePath string) ([]string, error) {
 				return err
 			}
 			if info.Mode().IsRegular() {
-				rel, err := filepath.Rel(absolutePath, path)
-				if err != nil {
-					return err
-				}
-				files = append(files, rel)
+				files = append(files, path)
 			}
 			return nil
 		},
