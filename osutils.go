@@ -32,16 +32,16 @@ type Cmd struct {
 }
 
 type PipeCmd struct {
-	Args []string
-	Env  []string
+	Args        []string
+	AbsoluteDir string
+	Env         []string
 }
 
 type PipeCmdList struct {
-	PipeCmds    []*PipeCmd
-	AbsoluteDir string
-	Stdin       io.Reader
-	Stdout      io.Writer
-	Stderr      io.Writer
+	PipeCmds []*PipeCmd
+	Stdin    io.Reader
+	Stdout   io.Writer
+	Stderr   io.Writer
 }
 
 func Execute(cmd *Cmd) (func() error, error) {
@@ -101,9 +101,6 @@ func executePiped(pipeCmdList *PipeCmdList) (func() error, error) {
 	if numCmds <= 1 {
 		return nil, ErrNotMultipleCommands
 	}
-	if pipeCmdList.AbsoluteDir != "" && !isAbsolutePath(pipeCmdList.AbsoluteDir) {
-		return nil, ErrNotAbsolutePath
-	}
 	for _, pipeCmd := range pipeCmdList.PipeCmds {
 		if pipeCmd.Args == nil {
 			return nil, ErrNil
@@ -111,10 +108,13 @@ func executePiped(pipeCmdList *PipeCmdList) (func() error, error) {
 		if len(pipeCmd.Args) == 0 {
 			return nil, ErrEmpty
 		}
+		if pipeCmd.AbsoluteDir != "" && !isAbsolutePath(pipeCmd.AbsoluteDir) {
+			return nil, ErrNotAbsolutePath
+		}
 	}
 	execCmds := make([]*exec.Cmd, numCmds)
 	for i, pipeCmd := range pipeCmdList.PipeCmds {
-		execCmd, err := execPipeCmd(pipeCmdList.AbsoluteDir, pipeCmd)
+		execCmd, err := execPipeCmd(pipeCmd)
 		if err != nil {
 			return nil, err
 		}
@@ -246,14 +246,14 @@ func execCmd(cmd *Cmd) (*exec.Cmd, error) {
 	return execCmd, nil
 }
 
-func execPipeCmd(absoluteDir string, pipeCmd *PipeCmd) (*exec.Cmd, error) {
+func execPipeCmd(pipeCmd *PipeCmd) (*exec.Cmd, error) {
 	var execCmd *exec.Cmd
 	if len(pipeCmd.Args) == 1 {
 		execCmd = exec.Command(pipeCmd.Args[0])
 	} else {
 		execCmd = exec.Command(pipeCmd.Args[0], pipeCmd.Args[1:]...)
 	}
-	execCmd.Dir = absoluteDir
+	execCmd.Dir = pipeCmd.AbsoluteDir
 	execCmd.Env = pipeCmd.Env
 	return execCmd, nil
 }

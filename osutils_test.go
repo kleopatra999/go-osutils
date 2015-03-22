@@ -79,18 +79,20 @@ func (this *Suite) TestPipe() {
 		&PipeCmdList{
 			PipeCmds: []*PipeCmd{
 				&PipeCmd{
-					Args: []string{"sort"},
+					Args:        []string{"sort"},
+					AbsoluteDir: this.tempDir,
 				},
 				&PipeCmd{
-					Args: []string{"uniq"},
+					Args:        []string{"uniq"},
+					AbsoluteDir: this.tempDir,
 				},
 				&PipeCmd{
-					Args: []string{"wc", "-l"},
+					Args:        []string{"wc", "-l"},
+					AbsoluteDir: this.tempDir,
 				},
 			},
-			AbsoluteDir: this.tempDir,
-			Stdin:       &input,
-			Stdout:      &output,
+			Stdin:  &input,
+			Stdout: &output,
 		},
 	)
 	require.NoError(this.T(), err)
