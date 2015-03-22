@@ -20,6 +20,9 @@ var (
 	ErrNil                 = errors.New("osutils: nil")
 	ErrEmpty               = errors.New("osutils: empty")
 	ErrNotMultipleCommands = errors.New("osutils: not multiple commands")
+	ErrFileDoesNotExist    = errors.New("osutils: file does not exist")
+	ErrNotRegularFile      = errors.New("osutils: not regular file")
+	ErrNotDir              = errors.New("osutils: not dir")
 )
 
 type Cmd struct {
@@ -56,16 +59,56 @@ func ListRegularFiles(absolutePath string) ([]string, error) {
 	return listRegularFiles(absolutePath)
 }
 
+func Open(absolutePath string) (*os.File, error) {
+	return open(absolutePath)
+}
+
+func Create(absolutePath string) (*os.File, error) {
+	return create(absolutePath)
+}
+
+func IsRegularFileExists(absolutePath string) (bool, error) {
+	return isRegularFileExists(absolutePath)
+}
+
+func IsDirExists(absolutePath string) (bool, error) {
+	return isDirExists(absolutePath)
+}
+
 func IsFileExists(absolutePath string) (bool, error) {
 	return isFileExists(absolutePath)
+}
+
+func Mkdir(absolutePath string, perm os.FileMode) error {
+	return mkdir(absolutePath, perm)
+}
+
+func MkdirAll(absolutePath string, perm os.FileMode) error {
+	return mkdirAll(absolutePath, perm)
+}
+
+func RemoveAll(absolutePath string) error {
+	return removeAll(absolutePath)
+}
+
+func Rename(oldpath string, newpath string) error {
+	return rename(oldpath, newpath)
+}
+
+func Getwd() (string, error) {
+	return getwd()
 }
 
 func NewTempDir() (string, error) {
 	return newTempDir()
 }
 
-func NewSubDir(absoluteDirPath string) (string, error) {
-	return newSubDir(absoluteDirPath)
+func NewTempSubDir(absoluteBaseDirPath string) (string, error) {
+	return newTempSubDir(absoluteBaseDirPath)
+}
+
+func CleanPath(absolutePath string) (string, error) {
+	return cleanPath(absolutePath)
 }
 
 // ***** PRIVATE *****
@@ -190,18 +233,110 @@ func listRegularFiles(absolutePath string) ([]string, error) {
 	return files, nil
 }
 
+func open(absolutePath string) (*os.File, error) {
+	if !isAbsolutePath(absolutePath) {
+		return nil, ErrNotAbsolutePath
+	}
+	exists, err := isFileExists(absolutePath)
+	if err != nil {
+		return nil, err
+	}
+	if !exists {
+		return nil, ErrFileDoesNotExist
+	}
+	return os.Open(absolutePath)
+}
+
+func create(absolutePath string) (*os.File, error) {
+	if !isAbsolutePath(absolutePath) {
+		return nil, ErrNotAbsolutePath
+	}
+	return os.Create(absolutePath)
+}
+
+func isRegularFileExists(absolutePath string) (bool, error) {
+	if !isAbsolutePath(absolutePath) {
+		return false, ErrNotAbsolutePath
+	}
+	fileInfo, err := stat(absolutePath)
+	if err != nil {
+		return false, err
+	}
+	if fileInfo == nil {
+		return false, nil
+	}
+	if !fileInfo.Mode().IsRegular() {
+		return false, ErrNotRegularFile
+	}
+	return true, nil
+}
+
+func isDirExists(absolutePath string) (bool, error) {
+	if !isAbsolutePath(absolutePath) {
+		return false, ErrNotAbsolutePath
+	}
+	fileInfo, err := stat(absolutePath)
+	if err != nil {
+		return false, err
+	}
+	if fileInfo == nil {
+		return false, nil
+	}
+	if !fileInfo.Mode().IsDir() {
+		return false, ErrNotDir
+	}
+	return true, nil
+}
+
 func isFileExists(absolutePath string) (bool, error) {
 	if !isAbsolutePath(absolutePath) {
 		return false, ErrNotAbsolutePath
 	}
-	_, err := os.Stat(absolutePath)
-	if err == nil {
-		return true, nil
+	fileInfo, err := stat(absolutePath)
+	return fileInfo != nil, err
+}
+
+func mkdir(absolutePath string, perm os.FileMode) error {
+	if !isAbsolutePath(absolutePath) {
+		return ErrNotAbsolutePath
 	}
-	if os.IsNotExist(err) {
-		return false, nil
+	return os.Mkdir(absolutePath, perm)
+}
+
+func mkdirAll(absolutePath string, perm os.FileMode) error {
+	if !isAbsolutePath(absolutePath) {
+		return ErrNotAbsolutePath
 	}
-	return false, err
+	return os.MkdirAll(absolutePath, perm)
+}
+
+func removeAll(absolutePath string) error {
+	if !isAbsolutePath(absolutePath) {
+		return ErrNotAbsolutePath
+	}
+	return os.RemoveAll(absolutePath)
+}
+
+func rename(oldpath string, newpath string) error {
+	if !isAbsolutePath(oldpath) {
+		return ErrNotAbsolutePath
+	}
+	if !isAbsolutePath(newpath) {
+		return ErrNotAbsolutePath
+	}
+	return os.Rename(oldpath, newpath)
+}
+
+func getwd() (string, error) {
+	wd, err := os.Getwd()
+	if err != nil {
+		return "", err
+	}
+	abs, err := filepath.Abs(wd)
+	if err != nil {
+		return "", err
+	}
+	return cleanPath(abs)
 }
 
 func newTempDir() (string, error) {
@@ -209,26 +344,37 @@ func newTempDir() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return filepath.EvalSymlinks(filepath.Clean(tempDir))
+	return cleanPath(tempDir)
 }
 
-func newSubDir(absoluteDirPath string) (string, error) {
-	if !isAbsolutePath(absoluteDirPath) {
+func newTempSubDir(absoluteBaseDirPath string) (string, error) {
+	if !isAbsolutePath(absoluteBaseDirPath) {
 		return "", ErrNotAbsolutePath
 	}
-	subDir := filepath.Join(absoluteDirPath, uuid.NewUUID().String())
+	subDir := filepath.Join(absoluteBaseDirPath, uuid.NewUUID().String())
 	if err := os.Mkdir(subDir, 0755); err != nil {
 		return "", err
 	}
-	subDir, err := filepath.EvalSymlinks(filepath.Clean(subDir))
-	if err != nil {
-		return "", err
-	}
-	return subDir, nil
+	return cleanPath(subDir)
+}
+
+func cleanPath(absolutePath string) (string, error) {
+	return filepath.EvalSymlinks(filepath.Clean(absolutePath))
 }
 
 func isAbsolutePath(path string) bool {
 	return filepath.IsAbs(path)
+}
+
+func stat(absolutePath string) (os.FileInfo, error) {
+	fileInfo, err := os.Stat(absolutePath)
+	if err == nil {
+		return fileInfo, nil
+	}
+	if os.IsNotExist(err) {
+		return nil, nil
+	}
+	return nil, err
 }
 
 func execCmd(cmd *Cmd) (*exec.Cmd, error) {
