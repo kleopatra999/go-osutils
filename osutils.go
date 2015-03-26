@@ -67,6 +67,10 @@ func Create(absolutePath string) (*os.File, error) {
 	return create(absolutePath)
 }
 
+func OpenFile(absolutePath string, flag int, perm os.FileMode) (*os.File, error) {
+	return openFile(absolutePath, flag, perm)
+}
+
 func IsRegularFileExists(absolutePath string) (bool, error) {
 	return isRegularFileExists(absolutePath)
 }
@@ -252,6 +256,13 @@ func create(absolutePath string) (*os.File, error) {
 		return nil, ErrNotAbsolutePath
 	}
 	return os.Create(absolutePath)
+}
+
+func openFile(absolutePath string, flag int, perm os.FileMode) (*os.File, error) {
+	if !isAbsolutePath(absolutePath) {
+		return nil, ErrNotAbsolutePath
+	}
+	return os.OpenFile(absolutePath, flag, perm)
 }
 
 func isRegularFileExists(absolutePath string) (bool, error) {
