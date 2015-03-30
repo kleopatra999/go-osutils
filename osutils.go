@@ -8,7 +8,7 @@ import (
 	"os/exec"
 	"path/filepath"
 
-	"code.google.com/p/go-uuid/uuid"
+	"github.com/satori/go.uuid"
 )
 
 const (
@@ -362,7 +362,7 @@ func newTempSubDir(absoluteBaseDirPath string) (string, error) {
 	if !isAbsolutePath(absoluteBaseDirPath) {
 		return "", ErrNotAbsolutePath
 	}
-	subDir := filepath.Join(absoluteBaseDirPath, uuid.NewUUID().String())
+	subDir := filepath.Join(absoluteBaseDirPath, uuid.NewV4().String())
 	if err := os.Mkdir(subDir, 0755); err != nil {
 		return "", err
 	}
