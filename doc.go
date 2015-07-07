@@ -1,4 +1,4 @@
 /*
-OS utilities for Go.
+Package osutils contains OS utilities for Go.
 */
 package osutils

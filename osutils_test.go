@@ -22,45 +22,45 @@ func TestSuite(t *testing.T) {
 	suite.Run(t, new(Suite))
 }
 
-func (this *Suite) SetupSuite() {
+func (s *Suite) SetupSuite() {
 }
 
-func (this *Suite) SetupTest() {
+func (s *Suite) SetupTest() {
 	tempDir, err := NewTempDir()
-	require.NoError(this.T(), err)
-	this.tempDir = tempDir
+	require.NoError(s.T(), err)
+	s.tempDir = tempDir
 }
 
-func (this *Suite) TearDownTest() {
-	require.NoError(this.T(), os.RemoveAll(this.tempDir))
+func (s *Suite) TearDownTest() {
+	require.NoError(s.T(), os.RemoveAll(s.tempDir))
 }
 
-func (this *Suite) TearDownSuite() {
+func (s *Suite) TearDownSuite() {
 }
 
-func (this *Suite) TestPwd() {
-	stdout, _ := this.execute([]string{"pwd", "-P"}, nil)
-	require.Equal(this.T(), this.tempDir, stdout)
+func (s *Suite) TestPwd() {
+	stdout, _ := s.execute([]string{"pwd", "-P"}, nil)
+	require.Equal(s.T(), s.tempDir, stdout)
 }
 
-func (this *Suite) TestEnv() {
-	writeFile, err := os.Create(filepath.Join(this.tempDir, "echo_foo.sh"))
-	require.NoError(this.T(), err)
+func (s *Suite) TestEnv() {
+	writeFile, err := os.Create(filepath.Join(s.tempDir, "echo_foo.sh"))
+	require.NoError(s.T(), err)
 	fromFile, err := os.Open("_testdata/echo_foo.sh")
-	require.NoError(this.T(), err)
+	require.NoError(s.T(), err)
 	defer fromFile.Close()
 	data, err := ioutil.ReadAll(fromFile)
-	require.NoError(this.T(), err)
+	require.NoError(s.T(), err)
 	_, err = writeFile.Write(data)
-	require.NoError(this.T(), err)
+	require.NoError(s.T(), err)
 	err = writeFile.Chmod(0777)
-	require.NoError(this.T(), err)
+	require.NoError(s.T(), err)
 	writeFile.Close()
-	stdout, _ := this.execute([]string{"bash", filepath.Join(this.tempDir, "echo_foo.sh")}, []string{"FOO=foo"})
-	require.Equal(this.T(), "foo", stdout)
+	stdout, _ := s.execute([]string{"bash", filepath.Join(s.tempDir, "echo_foo.sh")}, []string{"FOO=foo"})
+	require.Equal(s.T(), "foo", stdout)
 }
 
-func (this *Suite) TestPipe() {
+func (s *Suite) TestPipe() {
 	var input bytes.Buffer
 	input.WriteString("hello\n")
 	input.WriteString("hello\n")
@@ -80,43 +80,43 @@ func (this *Suite) TestPipe() {
 			PipeCmds: []*PipeCmd{
 				&PipeCmd{
 					Args:        []string{"sort"},
-					AbsoluteDir: this.tempDir,
+					AbsoluteDir: s.tempDir,
 				},
 				&PipeCmd{
 					Args:        []string{"uniq"},
-					AbsoluteDir: this.tempDir,
+					AbsoluteDir: s.tempDir,
 				},
 				&PipeCmd{
 					Args:        []string{"wc", "-l"},
-					AbsoluteDir: this.tempDir,
+					AbsoluteDir: s.tempDir,
 				},
 			},
 			Stdin:  &input,
 			Stdout: &output,
 		},
 	)
-	require.NoError(this.T(), err)
-	require.NoError(this.T(), wait())
-	require.True(this.T(), strings.Contains(output.String(), "3"))
+	require.NoError(s.T(), err)
+	require.NoError(s.T(), wait())
+	require.True(s.T(), strings.Contains(output.String(), "3"))
 }
 
-func (this *Suite) TestListFileInfosShallow() {
-	err := os.MkdirAll(filepath.Join(this.tempDir, "dirOne"), 0755)
-	require.NoError(this.T(), err)
-	err = os.MkdirAll(filepath.Join(this.tempDir, "dirTwo"), 0755)
-	require.NoError(this.T(), err)
-	err = os.MkdirAll(filepath.Join(this.tempDir, "dirOne/dirOneOne"), 0755)
-	require.NoError(this.T(), err)
-	err = os.MkdirAll(filepath.Join(this.tempDir, "dirTwo/dirTwoOne"), 0755)
-	require.NoError(this.T(), err)
-	file, err := os.Create(filepath.Join(this.tempDir, "one"))
-	require.NoError(this.T(), err)
+func (s *Suite) TestListFileInfosShallow() {
+	err := os.MkdirAll(filepath.Join(s.tempDir, "dirOne"), 0755)
+	require.NoError(s.T(), err)
+	err = os.MkdirAll(filepath.Join(s.tempDir, "dirTwo"), 0755)
+	require.NoError(s.T(), err)
+	err = os.MkdirAll(filepath.Join(s.tempDir, "dirOne/dirOneOne"), 0755)
+	require.NoError(s.T(), err)
+	err = os.MkdirAll(filepath.Join(s.tempDir, "dirTwo/dirTwoOne"), 0755)
+	require.NoError(s.T(), err)
+	file, err := os.Create(filepath.Join(s.tempDir, "one"))
+	require.NoError(s.T(), err)
 	file.Close()
-	file, err = os.Create(filepath.Join(this.tempDir, "two"))
-	require.NoError(this.T(), err)
+	file, err = os.Create(filepath.Join(s.tempDir, "two"))
+	require.NoError(s.T(), err)
 	file.Close()
-	file, err = os.Create(filepath.Join(this.tempDir, "dirOne/oneOne"))
-	require.NoError(this.T(), err)
+	file, err = os.Create(filepath.Join(s.tempDir, "dirOne/oneOne"))
+	require.NoError(s.T(), err)
 	file.Close()
 
 	fileNameToDir := map[string]bool{
@@ -125,45 +125,45 @@ func (this *Suite) TestListFileInfosShallow() {
 		"one":    false,
 		"two":    false,
 	}
-	dir, err := os.Open(this.tempDir)
-	require.NoError(this.T(), err)
+	dir, err := os.Open(s.tempDir)
+	require.NoError(s.T(), err)
 	fileInfos, err := dir.Readdir(-1)
-	require.NoError(this.T(), err)
+	require.NoError(s.T(), err)
 	dir.Close()
-	require.Equal(this.T(), 4, len(fileInfos))
+	require.Equal(s.T(), 4, len(fileInfos))
 	for _, fileInfo := range fileInfos {
 		dir, ok := fileNameToDir[fileInfo.Name()]
-		require.True(this.T(), ok)
-		require.Equal(this.T(), dir, fileInfo.IsDir())
-		require.Equal(this.T(), !dir, fileInfo.Mode().IsRegular())
+		require.True(s.T(), ok)
+		require.Equal(s.T(), dir, fileInfo.IsDir())
+		require.Equal(s.T(), !dir, fileInfo.Mode().IsRegular())
 	}
 }
 
-func (this *Suite) execute(args []string, env []string) (stdout string, stderr string) {
+func (s *Suite) execute(args []string, env []string) (stdout string, stderr string) {
 	var stdoutBuffer bytes.Buffer
 	var stderrBuffer bytes.Buffer
 	wait, err := Execute(
 		&Cmd{
 			Args:        args,
-			AbsoluteDir: this.tempDir,
+			AbsoluteDir: s.tempDir,
 			Env:         env,
 			Stdout:      &stdoutBuffer,
 			Stderr:      &stderrBuffer,
 		},
 	)
-	require.NoError(this.T(), err)
-	require.NoError(this.T(), wait())
+	require.NoError(s.T(), err)
+	require.NoError(s.T(), wait())
 	stdout = strings.TrimSpace(stdoutBuffer.String())
 	stderr = strings.TrimSpace(stderrBuffer.String())
 	return
 }
 
-func (this *Suite) checkFileExists(path string) {
+func (s *Suite) checkFileExists(path string) {
 	_, err := os.Stat(path)
-	require.NoError(this.T(), err)
+	require.NoError(s.T(), err)
 }
 
-func (this *Suite) checkFileDoesNotExist(path string) {
+func (s *Suite) checkFileDoesNotExist(path string) {
 	_, err := os.Stat(path)
-	require.True(this.T(), os.IsNotExist(err))
+	require.True(s.T(), os.IsNotExist(err))
 }

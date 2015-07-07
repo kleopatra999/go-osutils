@@ -1,60 +1,56 @@
 .PHONY: \
 	all \
-	precommit \
-	check_for_codeship \
 	deps \
 	updatedeps \
 	testdeps \
 	updatetestdeps \
 	build \
-	install \
-	cov \
+	lint \
+	vet \
+	errcheck \
+	pretest \
 	test \
-	codeshipsteps \
-	doc \
+	cov \
 	clean
 
-all: test install
-
-precommit: doc
-
-check_for_codeship:
-	@ if ! which codeship > /dev/null; then \
-		echo "error: codeship not installed" >&2; \
-	  fi
+all: test
 
 deps:
-	go get -d -v ./...
+	go get -d -v -t ./...
 
 updatedeps:
 	go get -d -v -u -f ./...
 
-testdeps: deps
+testdeps:
 	go get -d -v -t ./...
 
-updatetestdeps: updatedeps
+updatetestdeps:
 	go get -d -v -t -u -f ./...
 
 build: deps
 	go build ./...
 
-install: deps
-	go install ./...
+lint: testdeps
+	go get -v github.com/golang/lint/golint
+	golint ./.
 
-cov: testdeps
-	go get -v github.com/axw/gocov/gocov
-	gocov test | gocov report
+vet: testdeps
+	go get -v golang.org/x/tools/cmd/vet
+	go vet ./...
+
+errcheck: testdeps
+	go get -v github.com/kisielk/errcheck
+	errcheck ./...
+
+pretest: lint vet errcheck
 
 test: testdeps
 	go test -test.v ./...
 
-codeshipsteps: check_for_codeship 
-	codeship steps
-
-doc:
-	go get -v github.com/robertkrimen/godocdown/godocdown
-	cp .readme.header README.md
-	godocdown | tail -n +7 >> README.md
+cov: testdeps
+	go get -v github.com/axw/gocov/gocov
+	go get golang.org/x/tools/cmd/cover
+	gocov test | gocov report
 
 clean:
 	go clean -i ./...
