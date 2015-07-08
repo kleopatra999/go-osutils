@@ -4,11 +4,13 @@
 OS utilities for Go.
 
 ## Installation
+
 ```bash
 go get -u github.com/peter-edge/go-osutils
 ```
 
 ## Import
+
 ```go
 import (
     "github.com/peter-edge/go-osutils"

@@ -1,3 +1,6 @@
+/*
+Package osutils contains OS utilities for Go.
+*/
 package osutils
 
 import (
@@ -218,8 +221,8 @@ func listRegularFiles(absolutePath string) ([]string, error) {
 	if !isAbsolutePath(absolutePath) {
 		return nil, ErrNotAbsolutePath
 	}
-	files := make([]string, 0)
-	err := filepath.Walk(
+	var files []string
+	if err := filepath.Walk(
 		absolutePath,
 		func(path string, info os.FileInfo, err error) error {
 			if err != nil {
@@ -230,8 +233,7 @@ func listRegularFiles(absolutePath string) ([]string, error) {
 			}
 			return nil
 		},
-	)
-	if err != nil {
+	); err != nil {
 		return nil, err
 	}
 	return files, nil

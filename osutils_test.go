@@ -2,6 +2,7 @@ package osutils
 
 import (
 	"bytes"
+	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -48,32 +49,32 @@ func (s *Suite) TestEnv() {
 	require.NoError(s.T(), err)
 	fromFile, err := os.Open("_testdata/echo_foo.sh")
 	require.NoError(s.T(), err)
-	defer fromFile.Close()
+	defer s.checkClose(fromFile)
 	data, err := ioutil.ReadAll(fromFile)
 	require.NoError(s.T(), err)
 	_, err = writeFile.Write(data)
 	require.NoError(s.T(), err)
 	err = writeFile.Chmod(0777)
 	require.NoError(s.T(), err)
-	writeFile.Close()
+	s.checkClose(writeFile)
 	stdout, _ := s.execute([]string{"bash", filepath.Join(s.tempDir, "echo_foo.sh")}, []string{"FOO=foo"})
 	require.Equal(s.T(), "foo", stdout)
 }
 
 func (s *Suite) TestPipe() {
 	var input bytes.Buffer
-	input.WriteString("hello\n")
-	input.WriteString("hello\n")
-	input.WriteString("woot\n")
-	input.WriteString("hello\n")
-	input.WriteString("foo\n")
-	input.WriteString("woot\n")
-	input.WriteString("foo\n")
-	input.WriteString("woot\n")
-	input.WriteString("hello\n")
-	input.WriteString("foo\n")
-	input.WriteString("foo\n")
-	input.WriteString("foo\n")
+	_, _ = input.WriteString("hello\n")
+	_, _ = input.WriteString("hello\n")
+	_, _ = input.WriteString("woot\n")
+	_, _ = input.WriteString("hello\n")
+	_, _ = input.WriteString("foo\n")
+	_, _ = input.WriteString("woot\n")
+	_, _ = input.WriteString("foo\n")
+	_, _ = input.WriteString("woot\n")
+	_, _ = input.WriteString("hello\n")
+	_, _ = input.WriteString("foo\n")
+	_, _ = input.WriteString("foo\n")
+	_, _ = input.WriteString("foo\n")
 	var output bytes.Buffer
 	wait, err := ExecutePiped(
 		&PipeCmdList{
@@ -111,13 +112,13 @@ func (s *Suite) TestListFileInfosShallow() {
 	require.NoError(s.T(), err)
 	file, err := os.Create(filepath.Join(s.tempDir, "one"))
 	require.NoError(s.T(), err)
-	file.Close()
+	s.checkClose(file)
 	file, err = os.Create(filepath.Join(s.tempDir, "two"))
 	require.NoError(s.T(), err)
-	file.Close()
+	s.checkClose(file)
 	file, err = os.Create(filepath.Join(s.tempDir, "dirOne/oneOne"))
 	require.NoError(s.T(), err)
-	file.Close()
+	s.checkClose(file)
 
 	fileNameToDir := map[string]bool{
 		"dirOne": true,
@@ -129,7 +130,7 @@ func (s *Suite) TestListFileInfosShallow() {
 	require.NoError(s.T(), err)
 	fileInfos, err := dir.Readdir(-1)
 	require.NoError(s.T(), err)
-	dir.Close()
+	s.checkClose(dir)
 	require.Equal(s.T(), 4, len(fileInfos))
 	for _, fileInfo := range fileInfos {
 		dir, ok := fileNameToDir[fileInfo.Name()]
@@ -166,4 +167,9 @@ func (s *Suite) checkFileExists(path string) {
 func (s *Suite) checkFileDoesNotExist(path string) {
 	_, err := os.Stat(path)
 	require.True(s.T(), os.IsNotExist(err))
+}
+
+func (s *Suite) checkClose(closer io.Closer) {
+	err := closer.Close()
+	require.NoError(s.T(), err)
 }
